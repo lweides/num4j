@@ -1,13 +1,13 @@
 package num4j.api;
 
-public interface Matrix {
+public interface Matrix<T extends Number> {
 
     /**
      * Adds the {@code other} {@link Matrix} to {@code this} elementwise and inplace.
      * @param other to be added
      * @throws num4j.exceptions.IncompatibleDimensionsException if the dimensions of the matrices do not match
      */
-    void add(Matrix other);
+    void add(Matrix<T> other);
 
     /**
      * Sets the addressed {@code position} to the given {@code value}.
@@ -15,7 +15,7 @@ public interface Matrix {
      * @param position position of new value
      * @throws num4j.exceptions.IncompatibleDimensionsException if the position cannot be addressed
      */
-    void set(double value, int ... position);
+    void set(T value, int ... position);
 
     /**
      * @return the dimensions of the current {@link Matrix}
@@ -28,7 +28,7 @@ public interface Matrix {
     int size();
 
     /**
-     * @return the elements contained in the {@link Matrix}
+     * @return the raw bytes of the elements contained in the {@link Matrix}
      */
-    double[] data();
+    byte[] data();
 }
