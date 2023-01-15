@@ -76,7 +76,7 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
             int toBase = computeAddress(coords, transposed.dimensions());
 
             for (int j = 0; j < elementSize(); j++) {
-                transposed.data()[toBase*elementSize() + j] = data()[fromBase*elementSize() + j];
+                transposed.set(data()[fromBase*elementSize() + j], toBase*elementSize() + j);
             }
             incCounter(coordCounter, 0);
         }
@@ -149,8 +149,10 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
     }
 
     @Override
-    public void set(T value, int... position) {
-        throw new RuntimeException("not yet implemented");
+    public void set(byte value, int... position) {
+        for(int pos : position) {
+            data[pos] = value;
+        }
     }
 
     @Override

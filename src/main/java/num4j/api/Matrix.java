@@ -22,7 +22,7 @@ public interface Matrix<T extends Number> {
      * @param position position of new value
      * @throws num4j.exceptions.IncompatibleDimensionsException if the position cannot be addressed
      */
-    void set(T value, int ... position);
+    void set(byte value, int ... position);
 
     /**
      * @return the dimensions of the current {@link Matrix}
