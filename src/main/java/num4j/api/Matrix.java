@@ -10,9 +10,16 @@ public interface Matrix<T extends Number> {
     void add(Matrix<T> other);
 
     /**
+     * Transposes {@code this} by swapping dimensions via the permutation given in {@code swap}
+     * @param swap dimension permutation
+     * @return new transposed matrix
+     */
+    Matrix<T> transpose(int ... swap);
+
+    /**
      * Sets the addressed {@code position} to the given {@code value}.
      * @param value new value
-     * @param position position of new value
+     * @param position position/start-address of new value
      * @throws num4j.exceptions.IncompatibleDimensionsException if the position cannot be addressed
      */
     void set(T value, int ... position);

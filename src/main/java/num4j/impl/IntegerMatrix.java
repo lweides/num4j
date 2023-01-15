@@ -1,6 +1,7 @@
 package num4j.impl;
 
 import jdk.incubator.vector.*;
+import num4j.api.Matrix;
 import num4j.unsafe.TheUnsafe;
 
 public class IntegerMatrix extends InMemoryMatrix<Integer> {
@@ -14,7 +15,7 @@ public class IntegerMatrix extends InMemoryMatrix<Integer> {
      */
     public static IntegerMatrix zeros(int ... dimensions) {
         // we need to divide by 8, as elementSize() is in bits, not bytes
-        int nrBytes = nrElements(dimensions) * SPECIES.elementSize() / 8;
+        int nrBytes = nrElements(dimensions) * (SPECIES.elementSize() / 8);
         byte[] data = new byte[nrBytes];
         return new IntegerMatrix(data, dimensions);
     }
@@ -27,7 +28,7 @@ public class IntegerMatrix extends InMemoryMatrix<Integer> {
     public static IntegerMatrix ones(int ... dimensions) {
         int nrElements = nrElements(dimensions);
         // we need to divide by 8, as elementSize() is in bits, not bytes
-        int nrBytes = nrElements * SPECIES.elementSize() / 8;
+        int nrBytes = nrElements * (SPECIES.elementSize() / 8);
         byte[] data = new byte[nrBytes];
         for (int i = 0; i < nrElements; i++) {
             TheUnsafe.write(data, i, 1);
@@ -35,12 +36,22 @@ public class IntegerMatrix extends InMemoryMatrix<Integer> {
         return new IntegerMatrix(data, dimensions);
     }
 
-    private IntegerMatrix(byte[] data, int... dimensions) {
+    IntegerMatrix(byte[] data, int... dimensions) {
         super(SPECIES, data, dimensions);
     }
 
     @Override
     protected Vector<Integer> fromByteArray(byte[] data, int offset, VectorMask<Integer> m) {
         return IntVector.fromByteArray(SPECIES, data, offset, BYTE_ORDER, m);
+    }
+
+    @Override
+    protected Matrix<Integer> createEmptyMatrix(int[] dimensions) {
+        return zeros(dimensions);
+    }
+
+    @Override
+    protected void set(Integer value, int address) {
+        TheUnsafe.write(data(), address, value);
     }
 }
