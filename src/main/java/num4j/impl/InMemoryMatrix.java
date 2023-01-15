@@ -6,7 +6,6 @@ import jdk.incubator.vector.VectorSpecies;
 import num4j.api.Matrix;
 import num4j.exceptions.IncompatibleDimensionsException;
 
-import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -144,7 +143,7 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
 
     protected abstract Matrix<T> createEmptyMatrix(int[] dimensions);
 
-    protected abstract byte[] toByteArray(T value);
+    protected abstract void set(T value, int address);
 
     protected int elementSize() {
         // divide by 8, as elementSize() is in bits, not bytes
@@ -164,12 +163,9 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
             throw new IllegalArgumentException("Excepts positions dimension coordinate format");
         }
 
-        byte[] values = toByteArray(value);
         for (int i = 0; i < position.length; i+=dimensions.length) {
             int baseAddress = computeAddress(Arrays.copyOfRange(position, i, i+dimensions.length), dimensions);
-            for (int j = 0; j < values.length; j++) {
-                setByte(values[j], baseAddress+j);
-            }
+            set(value, baseAddress);
         }
     }
 

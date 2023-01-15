@@ -7,8 +7,6 @@ import jdk.incubator.vector.VectorSpecies;
 import num4j.api.Matrix;
 import num4j.unsafe.TheUnsafe;
 
-import java.nio.ByteBuffer;
-
 public class DoubleMatrix extends InMemoryMatrix<Double> {
 
     private static final VectorSpecies<Double> SPECIES = DoubleVector.SPECIES_PREFERRED;
@@ -55,7 +53,7 @@ public class DoubleMatrix extends InMemoryMatrix<Double> {
     }
 
     @Override
-    protected byte[] toByteArray(Double value) {
-        return ByteBuffer.allocate(Double.BYTES).putDouble(value).array();
+    public void set(Double value, int address) {
+        TheUnsafe.write(data(), address, value);
     }
 }
