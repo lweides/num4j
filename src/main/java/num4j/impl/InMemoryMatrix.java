@@ -1,6 +1,5 @@
 package num4j.impl;
 
-import jdk.incubator.vector.DoubleVector;
 import jdk.incubator.vector.Vector;
 import jdk.incubator.vector.VectorMask;
 import jdk.incubator.vector.VectorSpecies;
@@ -9,6 +8,7 @@ import num4j.exceptions.IncompatibleDimensionsException;
 
 import java.nio.ByteOrder;
 import java.util.Arrays;
+import java.util.HashSet;
 
 abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
 
@@ -29,7 +29,7 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
             .reduce((i1, i2) -> i1 * i2)
             .orElse(0);
 
-        if (data.length != nrElements * elementSize / 8) {
+        if (data.length != nrElements * (elementSize / 8)) {
             throw new IncompatibleDimensionsException("Dimensions do not fit in data");
         }
     }
@@ -60,7 +60,88 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
         }
     }
 
+    public Matrix<T> transpose(int ... swap) {
+        checkSwapPermutation(swap);
+        int[] newDimensions = new int[dimensions().length];
+        for (int i = 0; i < newDimensions.length; i++) {
+            newDimensions[i] = dimensions()[swap[i]];
+        }
+
+        Matrix<T> transposed = createEmptyMatrix(newDimensions);
+        int[] coordCounter = new int[dimensions().length];
+
+        for (int i = 0; i < size(); i++) {
+            int fromBase = computeAddress(coordCounter, dimensions());
+            int[] coords = swapCoords(coordCounter, swap);
+            int toBase = computeAddress(coords, transposed.dimensions());
+
+            for (int j = 0; j < elementSize(); j++) {
+                transposed.data()[toBase*elementSize() + j] = data()[fromBase*elementSize() + j];
+            }
+            incCounter(coordCounter, 0);
+        }
+
+        return transposed;
+    }
+
+    private void checkSwapPermutation(int[] swap) {
+        if (swap.length != dimensions().length) {
+            throw new IncompatibleDimensionsException("Incompatible swap parameters.");
+        }
+
+        HashSet<Integer> temp = new HashSet<>();
+        for (int s : swap) {
+            if (s >= dimensions().length) {
+                throw new IncompatibleDimensionsException("Swap parameter targets dimensions outside of bounds for this matrix.");
+            }
+            temp.add(s);
+        }
+
+        if (temp.size() != swap.length) {
+            throw new IllegalArgumentException("All swap parameters have to be distinct from each other.");
+        }
+    }
+
+    private int[] swapCoords(int[] coords, int[] swap) {
+        if (coords.length != swap.length) {
+            throw new IncompatibleDimensionsException("Value coordinates and swap dimensions do not match");
+        }
+        int[] result = new int[coords.length];
+        for (int i = 0; i < swap.length; i++) {
+            result[i] = coords[swap[i]];
+        }
+        return result;
+    }
+
+    private int computeAddress(int[] coords, int[] dimensions){
+        if (coords.length != dimensions.length) {
+            throw new IncompatibleDimensionsException("Coordinates and target matrix dimensions do not match");
+        }
+        int address = 0;
+        for (int i = 0; i < coords.length; i++) {
+            int a = coords[i];
+            for (int j = i+1; j < coords.length; j++) {
+                a *= dimensions[j];
+            }
+            address += a;
+        }
+        return address;
+    }
+
+    private void incCounter(int[] counters,int d) {
+        int idx = Math.abs(d - counters.length+1);
+        counters[idx] += 1;
+        if (counters[idx] == dimensions()[idx]) {
+            for (int i = idx; i < counters.length; i++) {
+                counters[i] = 0;
+            }
+            incCounter(counters, d+1);
+        }
+    }
+
     protected abstract Vector<T> fromByteArray(byte[] data, int offset, VectorMask<T> m);
+
+    protected abstract Matrix<T> createEmptyMatrix(int[] dimensions);
 
     protected int elementSize() {
         // divide by 8, as elementSize() is in bits, not bytes
