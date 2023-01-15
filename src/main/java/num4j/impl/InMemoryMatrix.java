@@ -5,6 +5,7 @@ import jdk.incubator.vector.VectorMask;
 import jdk.incubator.vector.VectorSpecies;
 import num4j.api.Matrix;
 import num4j.exceptions.IncompatibleDimensionsException;
+import num4j.unsafe.TheUnsafe;
 
 import java.nio.ByteOrder;
 import java.util.Arrays;
@@ -71,13 +72,12 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
         int[] coordCounter = new int[dimensions().length];
 
         for (int i = 0; i < size(); i++) {
-            int fromBase = computeAddress(coordCounter, dimensions());
+            int fromBase = computeAddress(coordCounter, dimensions(), 0);
             int[] coords = swapCoords(coordCounter, swap);
-            int toBase = computeAddress(coords, transposed.dimensions());
+            int toBase = computeAddress(coords, transposed.dimensions(), 0);
 
-            for (int j = 0; j < elementSize(); j++) {
-                transposed.setByte(data()[fromBase + j], toBase + j);
-            }
+            System.arraycopy(data, fromBase, transposed.data(), toBase, elementSize());
+
             incCounter(coordCounter, 0);
         }
 
@@ -113,12 +113,12 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
         return result;
     }
 
-    private int computeAddress(int[] coords, int[] dimensions){
+    private int computeAddress(int[] coords, int[] dimensions, int start){
         if (coords.length != dimensions.length) {
             throw new IncompatibleDimensionsException("Coordinates and target matrix dimensions do not match");
         }
         int address = 0;
-        for (int i = 0; i < coords.length; i++) {
+        for (int i = start; i < start + dimensions.length; i++) {
             int a = coords[i];
             for (int j = i+1; j < coords.length; j++) {
                 a *= dimensions[j];
@@ -151,20 +151,13 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
     }
 
     @Override
-    public void setByte(byte value, int... position) {
-        for (int pos : position) {
-            data[pos] = value;
-        }
-    }
-
-    @Override
     public void set(T value, int... position) {
         if (position.length % dimensions.length != 0) {
             throw new IllegalArgumentException("Excepts positions dimension coordinate format");
         }
 
         for (int i = 0; i < position.length; i+=dimensions.length) {
-            int baseAddress = computeAddress(Arrays.copyOfRange(position, i, i+dimensions.length), dimensions);
+            int baseAddress = computeAddress(position, dimensions, i);
             set(value, baseAddress);
         }
     }
