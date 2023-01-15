@@ -1,9 +1,6 @@
 package num4j.impl;
 
-import jdk.incubator.vector.DoubleVector;
-import jdk.incubator.vector.Vector;
-import jdk.incubator.vector.VectorMask;
-import jdk.incubator.vector.VectorSpecies;
+import jdk.incubator.vector.*;
 import num4j.api.Matrix;
 import num4j.unsafe.TheUnsafe;
 
@@ -43,6 +40,11 @@ public class DoubleMatrix extends InMemoryMatrix<Double> {
     }
 
     @Override
+    protected Double getDefaultValue() {
+        return 0.0;
+    }
+
+    @Override
     protected Vector<Double> fromByteArray(byte[] data, int offset, VectorMask<Double> m) {
         return DoubleVector.fromByteArray(SPECIES, data, offset, BYTE_ORDER, m);
     }
@@ -50,6 +52,16 @@ public class DoubleMatrix extends InMemoryMatrix<Double> {
     @Override
     protected Matrix<Double> createEmptyMatrix(int[] dimensions) {
         return zeros(dimensions);
+    }
+
+    @Override
+    protected Double reduceLanes(Vector<Double> vector, VectorOperators.Associative op) {
+        return vector.reinterpretAsDoubles().reduceLanes(op);
+    }
+
+    @Override
+    protected Double add(Double t1, Double t2) {
+        return t1 + t2;
     }
 
     @Override

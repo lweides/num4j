@@ -9,6 +9,8 @@ public interface Matrix<T extends Number> {
      */
     void add(Matrix<T> other);
 
+    Matrix<T> mmul2D(Matrix<T> other);
+
     /**
      * Transposes {@code this} by swapping dimensions via the permutation given in {@code swap}
      * @param swap dimension permutation

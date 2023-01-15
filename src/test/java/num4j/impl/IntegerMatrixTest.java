@@ -177,4 +177,30 @@ class IntegerMatrixTest {
         intBuffer.put(expected);
         assertArrayEquals(byteBuffer.array(), transposed.data());
     }
+
+    @Test
+    void matrixMultiplication2D() {
+        IntegerMatrix m1 = IntegerMatrix.zeros(6, 2);
+        for (int i = 1; i <= 12 ; i++) {
+            TheUnsafe.write(m1.data(), i-1, i);
+        }
+
+        IntegerMatrix m2 = IntegerMatrix.zeros(2,3);
+        for (int i = 1; i <= 6 ; i++) {
+            TheUnsafe.write(m2.data(), i-1, i);
+        }
+
+
+        Matrix<Integer> m3 = m1.mmul2D(m2);
+        int[] expected = new int[] {
+                9, 12, 15,
+                19, 26, 33,
+                29, 40, 51,
+                39, 54, 69,
+                49, 68, 87,
+                59, 82, 105
+        };
+
+        //TODO add checking after API change
+    }
 }

@@ -41,6 +41,21 @@ public class IntegerMatrix extends InMemoryMatrix<Integer> {
     }
 
     @Override
+    protected Integer getDefaultValue() {
+        return 0;
+    }
+
+    @Override
+    protected Integer reduceLanes(Vector<Integer> vector, VectorOperators.Associative op) {
+        return vector.reinterpretAsInts().reduceLanes(op);
+    }
+
+    @Override
+    protected Integer add(Integer t1, Integer t2) {
+        return t1 + t2;
+    }
+
+    @Override
     protected Vector<Integer> fromByteArray(byte[] data, int offset, VectorMask<Integer> m) {
         return IntVector.fromByteArray(SPECIES, data, offset, BYTE_ORDER, m);
     }
