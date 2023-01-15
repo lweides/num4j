@@ -18,11 +18,19 @@ public interface Matrix<T extends Number> {
 
     /**
      * Sets the addressed {@code position} to the given {@code value}.
-     * @param value new value
+     * @param value new byte value
      * @param position position of new value
      * @throws num4j.exceptions.IncompatibleDimensionsException if the position cannot be addressed
      */
-    void set(byte value, int ... position);
+    void setByte(byte value, int ... position);
+
+    /**
+     * Sets the addressed {@code position} to the given {@code value}.
+     * @param value new value
+     * @param position position/start-address of new value
+     * @throws num4j.exceptions.IncompatibleDimensionsException if the position cannot be addressed
+     */
+    void set(T value, int ... position);
 
     /**
      * @return the dimensions of the current {@link Matrix}

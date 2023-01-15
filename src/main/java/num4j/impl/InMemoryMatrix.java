@@ -6,6 +6,7 @@ import jdk.incubator.vector.VectorSpecies;
 import num4j.api.Matrix;
 import num4j.exceptions.IncompatibleDimensionsException;
 
+import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -76,7 +77,7 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
             int toBase = computeAddress(coords, transposed.dimensions());
 
             for (int j = 0; j < elementSize(); j++) {
-                transposed.set(data()[fromBase*elementSize() + j], toBase*elementSize() + j);
+                transposed.setByte(data()[fromBase + j], toBase + j);
             }
             incCounter(coordCounter, 0);
         }
@@ -125,7 +126,7 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
             }
             address += a;
         }
-        return address;
+        return address * elementSize();
     }
 
     private void incCounter(int[] counters,int d) {
@@ -143,15 +144,32 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
 
     protected abstract Matrix<T> createEmptyMatrix(int[] dimensions);
 
+    protected abstract byte[] toByteArray(T value);
+
     protected int elementSize() {
         // divide by 8, as elementSize() is in bits, not bytes
         return species.elementSize() / 8;
     }
 
     @Override
-    public void set(byte value, int... position) {
-        for(int pos : position) {
+    public void setByte(byte value, int... position) {
+        for (int pos : position) {
             data[pos] = value;
+        }
+    }
+
+    @Override
+    public void set(T value, int... position) {
+        if (position.length % dimensions.length != 0) {
+            throw new IllegalArgumentException("Excepts positions dimension coordinate format");
+        }
+
+        byte[] values = toByteArray(value);
+        for (int i = 0; i < position.length; i+=dimensions.length) {
+            int baseAddress = computeAddress(Arrays.copyOfRange(position, i, i+dimensions.length), dimensions);
+            for (int j = 0; j < values.length; j++) {
+                setByte(values[j], baseAddress+j);
+            }
         }
     }
 

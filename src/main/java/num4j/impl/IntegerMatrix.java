@@ -4,6 +4,8 @@ import jdk.incubator.vector.*;
 import num4j.api.Matrix;
 import num4j.unsafe.TheUnsafe;
 
+import java.nio.ByteBuffer;
+
 public class IntegerMatrix extends InMemoryMatrix<Integer> {
 
     private static final VectorSpecies<Integer> SPECIES = IntVector.SPECIES_PREFERRED;
@@ -48,5 +50,10 @@ public class IntegerMatrix extends InMemoryMatrix<Integer> {
     @Override
     protected Matrix<Integer> createEmptyMatrix(int[] dimensions) {
         return zeros(dimensions);
+    }
+
+    @Override
+    protected byte[] toByteArray(Integer value) {
+        return ByteBuffer.allocate(Integer.BYTES).putInt(value).array();
     }
 }
