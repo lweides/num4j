@@ -36,6 +36,10 @@ public class IntegerMatrix extends InMemoryMatrix<Integer> {
         return new IntegerMatrix(data, dimensions);
     }
 
+    public static IntegerMatrixBuilder builder() {
+        return new IntegerMatrixBuilder();
+    }
+
     IntegerMatrix(byte[] data, int... dimensions) {
         super(SPECIES, data, dimensions);
     }
@@ -53,5 +57,25 @@ public class IntegerMatrix extends InMemoryMatrix<Integer> {
     @Override
     protected void set(Integer value, int address) {
         TheUnsafe.write(data(), address, value);
+    }
+
+    public static class IntegerMatrixBuilder extends AbstractBuilder<Integer> {
+
+        @Override
+        protected void fill(int offset, byte[] data, Integer... row) {
+            for (int i = 0; i < row.length; i++) {
+                TheUnsafe.write(data, offset + i, row[i]);
+            }
+        }
+
+        @Override
+        protected IntegerMatrix doBuild(byte[] data, int rows, int columns) {
+            return new IntegerMatrix(data, rows, columns);
+        }
+
+        @Override
+        protected int byteSize() {
+            return Integer.BYTES;
+        }
     }
 }

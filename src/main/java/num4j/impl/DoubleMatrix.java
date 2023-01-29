@@ -38,6 +38,10 @@ public class DoubleMatrix extends InMemoryMatrix<Double> {
         return new DoubleMatrix(data, dimensions);
     }
 
+    public static DoubleMatrixBuilder builder() {
+        return new DoubleMatrixBuilder();
+    }
+
     DoubleMatrix(byte[] data, int... dimensions) {
         super(SPECIES, data, dimensions);
     }
@@ -55,5 +59,25 @@ public class DoubleMatrix extends InMemoryMatrix<Double> {
     @Override
     public void set(Double value, int address) {
         TheUnsafe.write(data(), address, value);
+    }
+
+    public static class DoubleMatrixBuilder extends AbstractBuilder<Double> {
+
+        @Override
+        protected void fill(int offset, byte[] data, Double... row) {
+            for (int i = 0; i < row.length; i++) {
+                TheUnsafe.write(data, offset + i, row[i]);
+            }
+        }
+
+        @Override
+        protected DoubleMatrix doBuild(byte[] data, int rows, int columns) {
+            return new DoubleMatrix(data, rows, columns);
+        }
+
+        @Override
+        protected int byteSize() {
+            return Double.BYTES;
+        }
     }
 }

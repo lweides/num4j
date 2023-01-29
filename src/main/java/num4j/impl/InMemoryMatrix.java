@@ -3,9 +3,9 @@ package num4j.impl;
 import jdk.incubator.vector.Vector;
 import jdk.incubator.vector.VectorMask;
 import jdk.incubator.vector.VectorSpecies;
+import num4j.api.Builder;
 import num4j.api.Matrix;
 import num4j.exceptions.IncompatibleDimensionsException;
-import num4j.unsafe.TheUnsafe;
 
 import java.nio.ByteOrder;
 import java.util.Arrays;
@@ -181,5 +181,52 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
         if (!Arrays.equals(dimensions, other.dimensions())) {
             throw new IncompatibleDimensionsException("Dimensions do not match");
         }
+    }
+
+    protected abstract static class AbstractBuilder<T extends Number> implements Builder<T> {
+
+        private byte[] data = new byte[1024]; // holds 1024 / 8 = 128 doubles
+        private int rows = 0;
+        private int columns = -1;
+
+        @Override
+        public AbstractBuilder<T> row(T... row) {
+            if (columns != -1 && row.length != columns) {
+                throw new IncompatibleDimensionsException("Subsequent calls must have same columns");
+            }
+            if (columns == -1) {
+                columns = row.length;
+            }
+
+            rows++;
+            int requiredSize = rows * columns;
+            ensureCapacity(requiredSize);
+            int offset = (rows - 1) * columns;
+            fill(offset, data, row);
+            return this;
+        }
+
+        protected abstract void fill(int offset, byte[] data, T... row);
+
+        @Override
+        public Matrix<T> build() {
+            if (columns == -1) {
+                throw new IllegalStateException("Must at least add 1 row");
+            }
+            byte[] validBytes = Arrays.copyOfRange(data, 0, rows * columns * byteSize());
+            return doBuild(validBytes, rows, columns);
+        }
+
+        protected abstract Matrix<T> doBuild(byte[] data, int rows, int columns);
+
+        private void ensureCapacity(int requiredSize) {
+            if (data.length >= requiredSize * byteSize()) {
+                return;
+            }
+            int newSize = requiredSize * 2 * byteSize();
+            data = Arrays.copyOf(data, newSize);
+        }
+
+        protected abstract int byteSize();
     }
 }
