@@ -7,6 +7,8 @@ import jdk.incubator.vector.VectorSpecies;
 import num4j.api.Matrix;
 import num4j.unsafe.TheUnsafe;
 
+import java.util.Arrays;
+
 public class DoubleMatrix extends InMemoryMatrix<Double> {
 
     private static final VectorSpecies<Double> SPECIES = DoubleVector.SPECIES_PREFERRED;
@@ -59,6 +61,14 @@ public class DoubleMatrix extends InMemoryMatrix<Double> {
     @Override
     public void set(Double value, int address) {
         TheUnsafe.write(data(), address, value);
+    }
+
+
+    @Override
+    public Matrix<Double> copy() {
+        byte[] data = Arrays.copyOf(data(), data().length);
+        int[] dimensions = Arrays.copyOf(dimensions(), dimensions().length);
+        return new DoubleMatrix(data, dimensions);
     }
 
     public static class DoubleMatrixBuilder extends AbstractBuilder<Double> {

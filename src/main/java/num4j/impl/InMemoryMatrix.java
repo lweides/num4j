@@ -10,6 +10,7 @@ import num4j.exceptions.IncompatibleDimensionsException;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Objects;
 
 abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
 
@@ -220,6 +221,34 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
     @Override
     public byte[] data() {
         return data;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        InMemoryMatrix<?> that = (InMemoryMatrix<?>) o;
+
+        if (!Objects.equals(species, that.species)) {
+            return false;
+        }
+
+        if (!Arrays.equals(dimensions, that.dimensions)) {
+            return false;
+        }
+        return Arrays.equals(data, that.data);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = species != null ? species.hashCode() : 0;
+        result = 31 * result + Arrays.hashCode(dimensions);
+        return result;
     }
 
     private <O extends Number> void ensureSameDimensions(Matrix<O> other) {

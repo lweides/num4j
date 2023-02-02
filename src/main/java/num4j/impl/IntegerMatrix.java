@@ -4,6 +4,8 @@ import jdk.incubator.vector.*;
 import num4j.api.Matrix;
 import num4j.unsafe.TheUnsafe;
 
+import java.util.Arrays;
+
 public class IntegerMatrix extends InMemoryMatrix<Integer> {
 
     private static final VectorSpecies<Integer> SPECIES = IntVector.SPECIES_PREFERRED;
@@ -57,6 +59,13 @@ public class IntegerMatrix extends InMemoryMatrix<Integer> {
     @Override
     protected void set(Integer value, int address) {
         TheUnsafe.write(data(), address, value);
+    }
+
+    @Override
+    public Matrix<Integer> copy() {
+        byte[] data = Arrays.copyOf(data(), data().length);
+        int[] dimensions = Arrays.copyOf(dimensions(), dimensions().length);
+        return new IntegerMatrix(data, dimensions);
     }
 
     public static class IntegerMatrixBuilder extends AbstractBuilder<Integer> {

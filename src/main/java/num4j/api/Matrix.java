@@ -59,4 +59,9 @@ public interface Matrix<T extends Number> {
      * @return the raw bytes of the elements contained in the {@link Matrix}
      */
     byte[] data();
+
+    /**
+     * @return a deep copy
+     */
+    Matrix<T> copy();
 }
