@@ -1,5 +1,11 @@
 package num4j.api;
 
+import jdk.incubator.vector.Vector;
+import jdk.incubator.vector.VectorMask;
+
+import java.io.IOException;
+import java.io.OutputStream;
+
 public interface Matrix<T extends Number> {
 
     /**
@@ -64,4 +70,15 @@ public interface Matrix<T extends Number> {
      * @return a deep copy
      */
     Matrix<T> copy();
+
+    /**
+     * @return vectorized representation of {@link #data()}
+     */
+    Vector<T> toVec(int offset, VectorMask<T> mask);
+
+    /**
+     * Writes the matrix to the specified {@link OutputStream}.
+     * @param out stream to which the data is written
+     */
+    void write(OutputStream out) throws IOException;
 }
