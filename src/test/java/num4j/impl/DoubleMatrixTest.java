@@ -95,6 +95,98 @@ class DoubleMatrixTest {
     }
 
     @Test
+    void sumShouldWork() {
+        Matrix<Double> a = DoubleMatrix.builder()
+            .row(1.0, 1.0, 2.0)
+            .row(2.0, 3.0, 4.0)
+            .build();
+
+        Matrix<Double> b = DoubleMatrix.builder()
+            .row(2.0, 3.0, 4.0)
+            .row(1.0, 6.0, 7.2)
+            .build();
+
+        Matrix<Double> sum = a.copy();
+        sum.add(b);
+
+        Matrix<Double> expectedSum = DoubleMatrix.builder()
+            .row(3.0, 4.0, 6.0)
+            .row(3.0, 9.0, 11.2)
+            .build();
+
+        assertEquals(expectedSum, sum);
+    }
+
+    @Test
+    void subShouldWork() {
+        Matrix<Double> a = DoubleMatrix.builder()
+            .row(1.0, 1.0, 2.0)
+            .row(2.0, 3.0, 4.0)
+            .build();
+
+        Matrix<Double> b = DoubleMatrix.builder()
+            .row(2.0, 3.0, 4.0)
+            .row(1.0, 6.0, 7.2)
+            .build();
+
+        Matrix<Double> sub = a.copy();
+        sub.sub(b);
+
+        Matrix<Double> expectedSub = DoubleMatrix.builder()
+            .row(-1.0, -2.0, -2.0)
+            .row(1.0, -3.0, -3.2)
+            .build();
+
+        assertEquals(expectedSub, sub);
+    }
+
+    @Test
+    void mulShouldWork() {
+        Matrix<Double> a = DoubleMatrix.builder()
+            .row(1.0, 1.0, 2.0)
+            .row(2.0, 3.0, 4.0)
+            .build();
+
+        Matrix<Double> b = DoubleMatrix.builder()
+            .row(2.0, 3.0, 4.0)
+            .row(1.0, 6.0, 7.2)
+            .build();
+
+        Matrix<Double> mul = a.copy();
+        mul.mul(b);
+
+        Matrix<Double> expectedMul = DoubleMatrix.builder()
+            .row(2.0, 3.0, 8.0)
+            .row(2.0, 18.0, 28.8)
+            .build();
+
+        assertEquals(expectedMul, mul);
+    }
+
+    @Test
+    void divShouldWork() {
+        Matrix<Double> a = DoubleMatrix.builder()
+            .row(1.0, 1.0, 2.0)
+            .row(2.0, 3.0, 4.0)
+            .build();
+
+        Matrix<Double> b = DoubleMatrix.builder()
+            .row(2.0, 3.0, 4.0)
+            .row(1.0, 6.0, 7.2)
+            .build();
+
+        Matrix<Double> div = a.copy();
+        div.div(b);
+
+        Matrix<Double> expectedDiv = DoubleMatrix.builder()
+            .row(0.5, 1.0 / 3.0, 0.5)
+            .row(2.0, 0.5, 4.0 / 7.2)
+            .build();
+
+        assertEquals(expectedDiv, div);
+    }
+
+    @Test
     void transpose2D() {
         double[] large2DMatrix = IntStream.rangeClosed(1, 4171).mapToDouble(i -> i).toArray();
         ByteBuffer byteBuffer = ByteBuffer.allocate(large2DMatrix.length * 8);
