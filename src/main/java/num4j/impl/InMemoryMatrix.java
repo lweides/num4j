@@ -61,6 +61,51 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
         }
     }
 
+    @Override
+    public void sub(Matrix<T> other) {
+        ensureSameDimensions(other);
+        int upperBound = data.length / elementSize();
+
+        for (int offset = 0; offset < upperBound; offset += species.length()) {
+            VectorMask<T> mask = species.indexInRange(offset, upperBound);
+            Vector<T> va = fromByteArray(data, offset, mask);
+            Vector<T> vo = fromByteArray(other.data(), offset, mask);
+
+            va = va.sub(vo);
+            va.intoByteArray(data, offset, BYTE_ORDER, mask);
+        }
+    }
+
+    @Override
+    public void mul(Matrix<T> other) {
+        ensureSameDimensions(other);
+        int upperBound = data.length / elementSize();
+
+        for (int offset = 0; offset < upperBound; offset += species.length()) {
+            VectorMask<T> mask = species.indexInRange(offset, upperBound);
+            Vector<T> va = fromByteArray(data, offset, mask);
+            Vector<T> vo = fromByteArray(other.data(), offset, mask);
+
+            va = va.mul(vo);
+            va.intoByteArray(data, offset, BYTE_ORDER, mask);
+        }
+    }
+
+    @Override
+    public void div(Matrix<T> other) {
+        ensureSameDimensions(other);
+        int upperBound = data.length / elementSize();
+
+        for (int offset = 0; offset < upperBound; offset += species.length()) {
+            VectorMask<T> mask = species.indexInRange(offset, upperBound);
+            Vector<T> va = fromByteArray(data, offset, mask);
+            Vector<T> vo = fromByteArray(other.data(), offset, mask);
+
+            va = va.div(vo);
+            va.intoByteArray(data, offset, BYTE_ORDER, mask);
+        }
+    }
+
     public Matrix<T> transpose(int ... swap) {
         checkSwapPermutation(swap);
         int[] newDimensions = new int[dimensions().length];

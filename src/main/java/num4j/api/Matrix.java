@@ -10,6 +10,27 @@ public interface Matrix<T extends Number> {
     void add(Matrix<T> other);
 
     /**
+     * Subtracts the {@code other} {@link Matrix} to {@code this} elementwise and inplace.
+     * @param other to be subtracted
+     * @throws num4j.exceptions.IncompatibleDimensionsException if the dimensions of the matrices do not match
+     */
+    void sub(Matrix<T> other);
+
+    /**
+     * Multiplies the {@code other} {@link Matrix} to {@code this} elementwise and inplace.
+     * @param other to be multiplied by
+     * @throws num4j.exceptions.IncompatibleDimensionsException if the dimensions of the matrices do not match
+     */
+    void mul(Matrix<T> other);
+
+    /**
+     * Divides the {@code other} {@link Matrix} to {@code this} elementwise and inplace.
+     * @param other to be divided by
+     * @throws num4j.exceptions.IncompatibleDimensionsException if the dimensions of the matrices do not match
+     */
+    void div(Matrix<T> other);
+
+    /**
      * Transposes {@code this} by swapping dimensions via the permutation given in {@code swap}
      * @param swap dimension permutation
      * @return new transposed matrix
