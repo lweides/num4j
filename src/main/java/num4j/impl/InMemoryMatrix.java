@@ -7,6 +7,9 @@ import num4j.api.Builder;
 import num4j.api.Matrix;
 import num4j.exceptions.IncompatibleDimensionsException;
 
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -15,7 +18,6 @@ import java.util.Objects;
 abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
 
     protected static final ByteOrder BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
-
 
     /**
      * @return number of elements a matrix with the specified {@code dimensions} contains.
@@ -54,8 +56,8 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
 
         for (int offset = 0; offset < upperBound; offset += species.length()) {
             VectorMask<T> mask = species.indexInRange(offset, upperBound);
-            Vector<T> va = fromByteArray(data, offset, mask);
-            Vector<T> vo = fromByteArray(other.data(), offset, mask);
+            Vector<T> va = toVec(offset, mask);
+            Vector<T> vo = other.toVec(offset, mask);
 
             va = va.add(vo);
             va.intoByteArray(data, offset, BYTE_ORDER, mask);
@@ -69,8 +71,8 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
 
         for (int offset = 0; offset < upperBound; offset += species.length()) {
             VectorMask<T> mask = species.indexInRange(offset, upperBound);
-            Vector<T> va = fromByteArray(data, offset, mask);
-            Vector<T> vo = fromByteArray(other.data(), offset, mask);
+            Vector<T> va = toVec(offset, mask);
+            Vector<T> vo = other.toVec(offset, mask);
 
             va = va.sub(vo);
             va.intoByteArray(data, offset, BYTE_ORDER, mask);
@@ -84,8 +86,8 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
 
         for (int offset = 0; offset < upperBound; offset += species.length()) {
             VectorMask<T> mask = species.indexInRange(offset, upperBound);
-            Vector<T> va = fromByteArray(data, offset, mask);
-            Vector<T> vo = fromByteArray(other.data(), offset, mask);
+            Vector<T> va = toVec(offset, mask);
+            Vector<T> vo = other.toVec(offset, mask);
 
             va = va.mul(vo);
             va.intoByteArray(data, offset, BYTE_ORDER, mask);
@@ -99,8 +101,8 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
 
         for (int offset = 0; offset < upperBound; offset += species.length()) {
             VectorMask<T> mask = species.indexInRange(offset, upperBound);
-            Vector<T> va = fromByteArray(data, offset, mask);
-            Vector<T> vo = fromByteArray(other.data(), offset, mask);
+            Vector<T> va = toVec(offset, mask);
+            Vector<T> vo = other.toVec(offset, mask);
 
             va = va.div(vo);
             va.intoByteArray(data, offset, BYTE_ORDER, mask);
@@ -185,8 +187,6 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
         }
     }
 
-    protected abstract Vector<T> fromByteArray(byte[] data, int offset, VectorMask<T> m);
-
     protected abstract Matrix<T> createEmptyMatrix(int[] dimensions);
 
     protected abstract void set(T value, int address);
@@ -222,6 +222,20 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
     public byte[] data() {
         return data;
     }
+
+    @Override
+    public void write(OutputStream out) throws IOException {
+        writeType(out);
+        DataOutputStream dataOutputStream = new DataOutputStream(out);
+        dataOutputStream.writeByte(dimensions.length);
+        for (int dim : dimensions) {
+            dataOutputStream.writeInt(dim);
+        }
+        dataOutputStream.writeInt(data.length / elementSize());
+        out.write(data);
+    }
+
+    protected abstract void writeType(OutputStream out) throws IOException;
 
     @Override
     public boolean equals(Object o) {

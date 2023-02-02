@@ -7,6 +7,8 @@ import jdk.incubator.vector.VectorSpecies;
 import num4j.api.Matrix;
 import num4j.unsafe.TheUnsafe;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Arrays;
 
 public class DoubleMatrix extends InMemoryMatrix<Double> {
@@ -49,8 +51,8 @@ public class DoubleMatrix extends InMemoryMatrix<Double> {
     }
 
     @Override
-    protected Vector<Double> fromByteArray(byte[] data, int offset, VectorMask<Double> m) {
-        return DoubleVector.fromByteArray(SPECIES, data, offset, BYTE_ORDER, m);
+    public Vector<Double> toVec(int offset, VectorMask<Double> m) {
+        return DoubleVector.fromByteArray(SPECIES, data(), offset, BYTE_ORDER, m);
     }
 
     @Override
@@ -63,6 +65,10 @@ public class DoubleMatrix extends InMemoryMatrix<Double> {
         TheUnsafe.write(data(), address, value);
     }
 
+    @Override
+    protected void writeType(OutputStream out) throws IOException {
+        out.write(MemoryMappedIntegerMatrix.DOUBLE_TYPE);
+    }
 
     @Override
     public Matrix<Double> copy() {

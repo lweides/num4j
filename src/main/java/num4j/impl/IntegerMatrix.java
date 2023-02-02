@@ -4,6 +4,8 @@ import jdk.incubator.vector.*;
 import num4j.api.Matrix;
 import num4j.unsafe.TheUnsafe;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Arrays;
 
 public class IntegerMatrix extends InMemoryMatrix<Integer> {
@@ -47,8 +49,8 @@ public class IntegerMatrix extends InMemoryMatrix<Integer> {
     }
 
     @Override
-    protected Vector<Integer> fromByteArray(byte[] data, int offset, VectorMask<Integer> m) {
-        return IntVector.fromByteArray(SPECIES, data, offset, BYTE_ORDER, m);
+    public Vector<Integer> toVec(int offset, VectorMask<Integer> m) {
+        return IntVector.fromByteArray(SPECIES, data(), offset, BYTE_ORDER, m);
     }
 
     @Override
@@ -66,6 +68,11 @@ public class IntegerMatrix extends InMemoryMatrix<Integer> {
         byte[] data = Arrays.copyOf(data(), data().length);
         int[] dimensions = Arrays.copyOf(dimensions(), dimensions().length);
         return new IntegerMatrix(data, dimensions);
+    }
+
+    @Override
+    protected void writeType(OutputStream out) throws IOException {
+        out.write(MemoryMappedIntegerMatrix.INT_TYPE);
     }
 
     public static class IntegerMatrixBuilder extends AbstractBuilder<Integer> {
