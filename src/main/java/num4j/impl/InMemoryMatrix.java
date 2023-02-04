@@ -1,17 +1,24 @@
 package num4j.impl;
 
-import jdk.incubator.vector.*;
+import jdk.incubator.vector.Vector;
+import jdk.incubator.vector.VectorMask;
+import jdk.incubator.vector.VectorOperators;
+import jdk.incubator.vector.VectorSpecies;
+import num4j.api.Builder;
 import num4j.api.Matrix;
 import num4j.exceptions.IncompatibleDimensionsException;
 
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Objects;
 
 abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
 
     protected static final ByteOrder BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
-
 
     /**
      * @return number of elements a matrix with the specified {@code dimensions} contains.
@@ -50,10 +57,55 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
 
         for (int offset = 0; offset < upperBound; offset += species.length()) {
             VectorMask<T> mask = species.indexInRange(offset, upperBound);
-            Vector<T> va = fromByteArray(data, offset, mask);
-            Vector<T> vo = fromByteArray(other.data(), offset, mask);
+            Vector<T> va = toVec(offset, mask);
+            Vector<T> vo = other.toVec(offset, mask);
 
             va = va.add(vo);
+            va.intoByteArray(data, offset, BYTE_ORDER, mask);
+        }
+    }
+
+    @Override
+    public void sub(Matrix<T> other) {
+        ensureSameDimensions(other);
+        int upperBound = data.length / elementSize();
+
+        for (int offset = 0; offset < upperBound; offset += species.length()) {
+            VectorMask<T> mask = species.indexInRange(offset, upperBound);
+            Vector<T> va = toVec(offset, mask);
+            Vector<T> vo = other.toVec(offset, mask);
+
+            va = va.sub(vo);
+            va.intoByteArray(data, offset, BYTE_ORDER, mask);
+        }
+    }
+
+    @Override
+    public void mul(Matrix<T> other) {
+        ensureSameDimensions(other);
+        int upperBound = data.length / elementSize();
+
+        for (int offset = 0; offset < upperBound; offset += species.length()) {
+            VectorMask<T> mask = species.indexInRange(offset, upperBound);
+            Vector<T> va = toVec(offset, mask);
+            Vector<T> vo = other.toVec(offset, mask);
+
+            va = va.mul(vo);
+            va.intoByteArray(data, offset, BYTE_ORDER, mask);
+        }
+    }
+
+    @Override
+    public void div(Matrix<T> other) {
+        ensureSameDimensions(other);
+        int upperBound = data.length / elementSize();
+
+        for (int offset = 0; offset < upperBound; offset += species.length()) {
+            VectorMask<T> mask = species.indexInRange(offset, upperBound);
+            Vector<T> va = toVec(offset, mask);
+            Vector<T> vo = other.toVec(offset, mask);
+
+            va = va.div(vo);
             va.intoByteArray(data, offset, BYTE_ORDER, mask);
         }
     }
@@ -78,8 +130,8 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
                 T sum = getDefaultValue();
                 for (int k = 0; k < n; k+= species.length()) {
                     VectorMask<T> mask = species.indexInRange(k, n);
-                    Vector<T> va = fromByteArray(data(),elementSize() * (n * i +  k), mask);
-                    Vector<T> vb = fromByteArray(otherTransposed.data(), elementSize() * (n * j + k), mask);
+                    Vector<T> va = toVec(elementSize() * (n * i +  k), mask);
+                    Vector<T> vb = toVec(elementSize() * (n * j + k), mask);
 
                     va = va.mul(vb);
                     sum = add(sum,reduceLanes(va, VectorOperators.ADD));
@@ -169,8 +221,6 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
         }
     }
 
-    protected abstract Vector<T> fromByteArray(byte[] data, int offset, VectorMask<T> m);
-
     protected abstract Matrix<T> createEmptyMatrix(int[] dimensions);
 
     protected abstract T reduceLanes(Vector<T> vector, VectorOperators.Associative op);
@@ -213,9 +263,98 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
         return data;
     }
 
+    @Override
+    public void write(OutputStream out) throws IOException {
+        writeType(out);
+        DataOutputStream dataOutputStream = new DataOutputStream(out);
+        dataOutputStream.writeByte(dimensions.length);
+        for (int dim : dimensions) {
+            dataOutputStream.writeInt(dim);
+        }
+        dataOutputStream.writeInt(data.length / elementSize());
+        out.write(data);
+    }
+
+    protected abstract void writeType(OutputStream out) throws IOException;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        InMemoryMatrix<?> that = (InMemoryMatrix<?>) o;
+
+        if (!Objects.equals(species, that.species)) {
+            return false;
+        }
+
+        if (!Arrays.equals(dimensions, that.dimensions)) {
+            return false;
+        }
+        return Arrays.equals(data, that.data);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = species != null ? species.hashCode() : 0;
+        result = 31 * result + Arrays.hashCode(dimensions);
+        return result;
+    }
+
     private <O extends Number> void ensureSameDimensions(Matrix<O> other) {
         if (!Arrays.equals(dimensions, other.dimensions())) {
             throw new IncompatibleDimensionsException("Dimensions do not match");
         }
+    }
+
+    protected abstract static class AbstractBuilder<T extends Number> implements Builder<T> {
+
+        private byte[] data = new byte[1024]; // holds 1024 / 8 = 128 doubles
+        private int rows = 0;
+        private int columns = -1;
+
+        @Override
+        public AbstractBuilder<T> row(T... row) {
+            if (columns != -1 && row.length != columns) {
+                throw new IncompatibleDimensionsException("Subsequent calls must have same columns");
+            }
+            if (columns == -1) {
+                columns = row.length;
+            }
+
+            rows++;
+            int requiredSize = rows * columns;
+            ensureCapacity(requiredSize);
+            int offset = (rows - 1) * columns;
+            fill(offset, data, row);
+            return this;
+        }
+
+        protected abstract void fill(int offset, byte[] data, T... row);
+
+        @Override
+        public Matrix<T> build() {
+            if (columns == -1) {
+                throw new IllegalStateException("Must at least add 1 row");
+            }
+            byte[] validBytes = Arrays.copyOfRange(data, 0, rows * columns * byteSize());
+            return doBuild(validBytes, rows, columns);
+        }
+
+        protected abstract Matrix<T> doBuild(byte[] data, int rows, int columns);
+
+        private void ensureCapacity(int requiredSize) {
+            if (data.length >= requiredSize * byteSize()) {
+                return;
+            }
+            int newSize = requiredSize * 2 * byteSize();
+            data = Arrays.copyOf(data, newSize);
+        }
+
+        protected abstract int byteSize();
     }
 }

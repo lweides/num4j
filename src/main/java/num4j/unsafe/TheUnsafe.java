@@ -20,12 +20,12 @@ public class TheUnsafe {
     }
 
     public static void write(byte[] data, long offset, int value) {
-        long offsetInByte = BYTE_ARRAY_OFFSET + offset * BYTE_ARRAY_SCALE * 4;
+        long offsetInByte = BYTE_ARRAY_OFFSET + offset * BYTE_ARRAY_SCALE * Integer.BYTES;
         UNSAFE.putInt(data, offsetInByte, value);
     }
 
     public static void write(byte[] data, long offset, double value) {
-        long offsetInByte = BYTE_ARRAY_OFFSET + offset * BYTE_ARRAY_SCALE * 8;
+        long offsetInByte = BYTE_ARRAY_OFFSET + offset * BYTE_ARRAY_SCALE * Double.BYTES;
         UNSAFE.putDouble(data, offsetInByte, value);
     }
 }

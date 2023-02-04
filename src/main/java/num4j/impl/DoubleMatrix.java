@@ -4,6 +4,10 @@ import jdk.incubator.vector.*;
 import num4j.api.Matrix;
 import num4j.unsafe.TheUnsafe;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Arrays;
+
 public class DoubleMatrix extends InMemoryMatrix<Double> {
 
     private static final VectorSpecies<Double> SPECIES = DoubleVector.SPECIES_PREFERRED;
@@ -35,6 +39,10 @@ public class DoubleMatrix extends InMemoryMatrix<Double> {
         return new DoubleMatrix(data, dimensions);
     }
 
+    public static DoubleMatrixBuilder builder() {
+        return new DoubleMatrixBuilder();
+    }
+
     DoubleMatrix(byte[] data, int... dimensions) {
         super(SPECIES, data, dimensions);
     }
@@ -45,8 +53,8 @@ public class DoubleMatrix extends InMemoryMatrix<Double> {
     }
 
     @Override
-    protected Vector<Double> fromByteArray(byte[] data, int offset, VectorMask<Double> m) {
-        return DoubleVector.fromByteArray(SPECIES, data, offset, BYTE_ORDER, m);
+    public Vector<Double> toVec(int offset, VectorMask<Double> m) {
+        return DoubleVector.fromByteArray(SPECIES, data(), offset, BYTE_ORDER, m);
     }
 
     @Override
@@ -67,5 +75,37 @@ public class DoubleMatrix extends InMemoryMatrix<Double> {
     @Override
     public void set(Double value, int address) {
         TheUnsafe.write(data(), address, value);
+    }
+
+    @Override
+    protected void writeType(OutputStream out) throws IOException {
+        out.write(MemoryMappedIntegerMatrix.DOUBLE_TYPE);
+    }
+
+    @Override
+    public Matrix<Double> copy() {
+        byte[] data = Arrays.copyOf(data(), data().length);
+        int[] dimensions = Arrays.copyOf(dimensions(), dimensions().length);
+        return new DoubleMatrix(data, dimensions);
+    }
+
+    public static class DoubleMatrixBuilder extends AbstractBuilder<Double> {
+
+        @Override
+        protected void fill(int offset, byte[] data, Double... row) {
+            for (int i = 0; i < row.length; i++) {
+                TheUnsafe.write(data, offset + i, row[i]);
+            }
+        }
+
+        @Override
+        protected DoubleMatrix doBuild(byte[] data, int rows, int columns) {
+            return new DoubleMatrix(data, rows, columns);
+        }
+
+        @Override
+        protected int byteSize() {
+            return Double.BYTES;
+        }
     }
 }

@@ -4,6 +4,10 @@ import jdk.incubator.vector.*;
 import num4j.api.Matrix;
 import num4j.unsafe.TheUnsafe;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Arrays;
+
 public class IntegerMatrix extends InMemoryMatrix<Integer> {
 
     private static final VectorSpecies<Integer> SPECIES = IntVector.SPECIES_PREFERRED;
@@ -36,6 +40,10 @@ public class IntegerMatrix extends InMemoryMatrix<Integer> {
         return new IntegerMatrix(data, dimensions);
     }
 
+    public static IntegerMatrixBuilder builder() {
+        return new IntegerMatrixBuilder();
+    }
+
     IntegerMatrix(byte[] data, int... dimensions) {
         super(SPECIES, data, dimensions);
     }
@@ -56,8 +64,8 @@ public class IntegerMatrix extends InMemoryMatrix<Integer> {
     }
 
     @Override
-    protected Vector<Integer> fromByteArray(byte[] data, int offset, VectorMask<Integer> m) {
-        return IntVector.fromByteArray(SPECIES, data, offset, BYTE_ORDER, m);
+    public Vector<Integer> toVec(int offset, VectorMask<Integer> m) {
+        return IntVector.fromByteArray(SPECIES, data(), offset, BYTE_ORDER, m);
     }
 
     @Override
@@ -68,5 +76,37 @@ public class IntegerMatrix extends InMemoryMatrix<Integer> {
     @Override
     protected void set(Integer value, int address) {
         TheUnsafe.write(data(), address, value);
+    }
+
+    @Override
+    public Matrix<Integer> copy() {
+        byte[] data = Arrays.copyOf(data(), data().length);
+        int[] dimensions = Arrays.copyOf(dimensions(), dimensions().length);
+        return new IntegerMatrix(data, dimensions);
+    }
+
+    @Override
+    protected void writeType(OutputStream out) throws IOException {
+        out.write(MemoryMappedIntegerMatrix.INT_TYPE);
+    }
+
+    public static class IntegerMatrixBuilder extends AbstractBuilder<Integer> {
+
+        @Override
+        protected void fill(int offset, byte[] data, Integer... row) {
+            for (int i = 0; i < row.length; i++) {
+                TheUnsafe.write(data, offset + i, row[i]);
+            }
+        }
+
+        @Override
+        protected IntegerMatrix doBuild(byte[] data, int rows, int columns) {
+            return new IntegerMatrix(data, rows, columns);
+        }
+
+        @Override
+        protected int byteSize() {
+            return Integer.BYTES;
+        }
     }
 }
