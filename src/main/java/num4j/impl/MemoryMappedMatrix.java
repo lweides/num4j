@@ -59,7 +59,7 @@ public abstract class MemoryMappedMatrix<T extends Number> implements Matrix<T>,
     }
 
     @Override
-    public void reshape(int[] dimensions) {
+    public void reshape(int... dimensions) {
         throw unmodifiable();
     }
 

@@ -115,7 +115,7 @@ class IntegerMatrixTest {
                 .row(9, 10, 11, 12)
                 .row(13, 14, 15, 16)
                 .build();
-        m1.reshape(new int[] {2, 2, 4});
+        m1.reshape(2, 2, 4);
 
         Matrix<Integer> expected = IntegerMatrix.builder()
                 .row(1, 9)
@@ -128,7 +128,7 @@ class IntegerMatrixTest {
                 .row(7, 15)
                 .row(8, 16)
                 .build();
-        expected.reshape(new int[]{2, 4, 2});
+        expected.reshape(2, 4, 2);
 
         assertEquals(expected, m1.transpose(1, 2, 0));
     }
@@ -176,7 +176,7 @@ class IntegerMatrixTest {
                 .row(13, 14)
                 .row(15, 16)
                 .row(17, 18).build();
-        m1.reshape(new int[]{3, 3, 2});
+        m1.reshape(3, 3, 2);
 
         Matrix<Integer> m2 = IntegerMatrix.builder()
                 .row(1, 2, 3, 4)
@@ -187,7 +187,7 @@ class IntegerMatrixTest {
 
                 .row(17, 18, 19, 20)
                 .row(21, 22, 23, 24).build();
-        m2.reshape(new int[]{3, 2, 4});
+        m2.reshape(3, 2, 4);
 
         Matrix<Integer> result =  m1.mmul(m2);
         Matrix<Integer> expected = IntegerMatrix.builder()
@@ -202,7 +202,7 @@ class IntegerMatrixTest {
                 .row(515, 542, 569, 596)
                 .row(591, 622, 653, 684)
                 .row(667, 702, 737, 772).build();
-        expected.reshape(new int[]{3, 3, 4});
+        expected.reshape(3, 3, 4);
 
         assertEquals(expected, result);
     }
@@ -241,9 +241,9 @@ class IntegerMatrixTest {
                 .row(45, 46)
                 .row(47, 48)
                 .build();
-        m1.reshape(new int[] {2, 1, 3, 4, 2});
+        m1.reshape(2, 1, 3, 4, 2);
 
-        Matrix<Integer> m22 = IntegerMatrix.builder()
+        Matrix<Integer> m2 = IntegerMatrix.builder()
                 .row(1, 2, 3)
                 .row(4, 5, 6)
 
@@ -273,11 +273,11 @@ class IntegerMatrixTest {
                 .row(49, 50, 51)
                 .row(52, 53, 54)
                 .build();
-        m22.reshape(new int[]{ 3, 3, 2, 3 });
+        m2.reshape(3, 3, 2, 3);
 
-        Matrix<Integer> result =  m1.mmul(m22);
+        Matrix<Integer> result = m1.mmul(m2);
 
-        Matrix<Integer> x = IntegerMatrix.builder()
+        Matrix<Integer> expected = IntegerMatrix.builder()
                 .row(9, 12, 15)
                 .row(19, 26, 33)
                 .row( 29, 40, 51)
@@ -373,7 +373,7 @@ class IntegerMatrixTest {
                 .row(4597, 4688, 4779)
                 .row(4799, 4894, 4989)
                 .build();
-        x.reshape(new int[] {2, 3, 3, 4, 3});
-        assertEquals(x, result);
+        expected.reshape(2, 3, 3, 4, 3);
+        assertEquals(expected, result);
     }
 }

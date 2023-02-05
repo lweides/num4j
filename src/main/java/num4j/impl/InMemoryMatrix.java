@@ -21,7 +21,6 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
 
     protected static final ByteOrder BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
 
-
     /**
      * @return number of elements a matrix with the specified {@code dimensions} contains.
      */
@@ -195,8 +194,6 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
                     result.set(sum, toIDx);
                 }
             }
-
-
         } else {
             int nDim = dimensions.length;
             int d1 = dimensions[nDim-1 - level];
@@ -348,7 +345,8 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
         }
     }
 
-    public void reshape(int[] dimensions) {
+    @Override
+    public void reshape(int... dimensions) {
         if (nrElements(dimensions) != size()) {
             throw new IllegalArgumentException("Incompatible dimensions for this matrix data");
         }

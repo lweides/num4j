@@ -29,6 +29,12 @@ public interface Matrix<T extends Number> {
      */
     void mul(Matrix<T> other);
 
+    /**
+     * Matrix Multiplication of the {@code other} {@link Matrix} and {@code this}.
+     * @param other second part of Matrix Multiplication
+     * @throws IllegalArgumentException if the dimensions are smaller than 2
+     * @throws num4j.exceptions.IncompatibleDimensionsException if the dimensions of the matrices are not compatible for matrix multiplication
+     */
     Matrix<T> mmul(Matrix<T> other);
 
     /**
@@ -59,11 +65,11 @@ public interface Matrix<T extends Number> {
     int[] dimensions();
 
     /**
-     * Sets new dimension to the current matrix
+     * Reshapes current {@link Matrix} with new dimensions
      * @param dimensions new dimensions
      * @throws IllegalArgumentException if number of matrix elements and new dimensions do not match
      */
-    void reshape(int[] dimensions);
+    void reshape(int ... dimensions);
 
     /**
      * @return the number of elements in the {@link Matrix}
