@@ -47,12 +47,6 @@ public class MemoryMappedIntegerMatrix extends MemoryMappedMatrix<Integer> {
     }
 
     @Override
-    public Matrix<Integer> mmul2D(Matrix<Integer> other) {
-        //TODO
-        return null;
-    }
-
-    @Override
     public Matrix<Integer> copy() {
         this.data.position(0);
         int[] dimensions = Arrays.copyOf(dimensions(), dimensions().length);

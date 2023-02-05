@@ -28,4 +28,10 @@ public class TheUnsafe {
         long offsetInByte = BYTE_ARRAY_OFFSET + offset * BYTE_ARRAY_SCALE * Double.BYTES;
         UNSAFE.putDouble(data, offsetInByte, value);
     }
+
+    public static void write(byte[] data, long offset, int ...values) {
+        for (int i = 0; i < values.length; i++) {
+            TheUnsafe.write(data, offset + i, values[i]);
+        }
+    }
 }

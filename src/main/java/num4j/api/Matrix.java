@@ -15,8 +15,6 @@ public interface Matrix<T extends Number> {
      */
     void add(Matrix<T> other);
 
-    Matrix<T> mmul2D(Matrix<T> other);
-
     /**
      * Subtracts the {@code other} {@link Matrix} to {@code this} elementwise and inplace.
      * @param other to be subtracted
@@ -30,6 +28,8 @@ public interface Matrix<T extends Number> {
      * @throws num4j.exceptions.IncompatibleDimensionsException if the dimensions of the matrices do not match
      */
     void mul(Matrix<T> other);
+
+    Matrix<T> mmul(Matrix<T> other);
 
     /**
      * Divides the {@code other} {@link Matrix} to {@code this} elementwise and inplace.
@@ -57,6 +57,8 @@ public interface Matrix<T extends Number> {
      * @return the dimensions of the current {@link Matrix}
      */
     int[] dimensions();
+
+    void setDimensions(int[] dimensions);
 
     /**
      * @return the number of elements in the {@link Matrix}

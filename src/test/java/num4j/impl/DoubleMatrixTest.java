@@ -285,7 +285,7 @@ class DoubleMatrixTest {
             TheUnsafe.write(m2.data(), i-1, i);
         }
 
-        Matrix<Double> m3 = m1.mmul2D(m2);
+        Matrix<Double> m3 = m1.mmul(m2);
         int[] expected = new int[] {
                 9, 12, 15,
                 19, 26, 33,

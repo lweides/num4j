@@ -54,6 +54,16 @@ public abstract class MemoryMappedMatrix<T extends Number> implements Matrix<T>,
     }
 
     @Override
+    public Matrix<T> mmul(Matrix<T> other) {
+        throw unmodifiable();
+    }
+
+    @Override
+    public void setDimensions(int[] dimensions) {
+        throw unmodifiable();
+    }
+
+    @Override
     public void set(T value, int... position) {
         throw unmodifiable();
     }
