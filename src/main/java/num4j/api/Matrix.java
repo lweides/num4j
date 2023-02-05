@@ -58,7 +58,12 @@ public interface Matrix<T extends Number> {
      */
     int[] dimensions();
 
-    void setDimensions(int[] dimensions);
+    /**
+     * Sets new dimension to the current matrix
+     * @param dimensions new dimensions
+     * @throws IllegalArgumentException if number of matrix elements and new dimensions do not match
+     */
+    void reshape(int[] dimensions);
 
     /**
      * @return the number of elements in the {@link Matrix}
