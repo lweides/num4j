@@ -2,6 +2,7 @@ package num4j.impl;
 
 import jdk.incubator.vector.Vector;
 import jdk.incubator.vector.VectorMask;
+import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.VectorSpecies;
 import num4j.api.Builder;
 import num4j.api.Matrix;
@@ -14,10 +15,12 @@ import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.stream.IntStream;
 
 abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
 
     protected static final ByteOrder BYTE_ORDER = ByteOrder.LITTLE_ENDIAN;
+
 
     /**
      * @return number of elements a matrix with the specified {@code dimensions} contains.
@@ -40,7 +43,7 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
 
     private final VectorSpecies<T> species;
     private final byte[] data;
-    private final int[] dimensions;
+    private int[] dimensions;
 
     InMemoryMatrix(VectorSpecies<T> species, byte[] data, int ... dimensions) {
         ensureValidDimensions(species.elementSize(), data, dimensions);
@@ -56,11 +59,11 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
 
         for (int offset = 0; offset < upperBound; offset += species.length()) {
             VectorMask<T> mask = species.indexInRange(offset, upperBound);
-            Vector<T> va = toVec(offset, mask);
-            Vector<T> vo = other.toVec(offset, mask);
+            Vector<T> va = toVec(elementSize() * offset, mask);
+            Vector<T> vo = other.toVec(elementSize() * offset, mask);
 
             va = va.add(vo);
-            va.intoByteArray(data, offset, BYTE_ORDER, mask);
+            va.intoByteArray(data, elementSize() * offset, BYTE_ORDER, mask);
         }
     }
 
@@ -71,11 +74,11 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
 
         for (int offset = 0; offset < upperBound; offset += species.length()) {
             VectorMask<T> mask = species.indexInRange(offset, upperBound);
-            Vector<T> va = toVec(offset, mask);
-            Vector<T> vo = other.toVec(offset, mask);
+            Vector<T> va = toVec(elementSize() * offset, mask);
+            Vector<T> vo = other.toVec(elementSize() * offset, mask);
 
             va = va.sub(vo);
-            va.intoByteArray(data, offset, BYTE_ORDER, mask);
+            va.intoByteArray(data, elementSize() * offset, BYTE_ORDER, mask);
         }
     }
 
@@ -86,11 +89,11 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
 
         for (int offset = 0; offset < upperBound; offset += species.length()) {
             VectorMask<T> mask = species.indexInRange(offset, upperBound);
-            Vector<T> va = toVec(offset, mask);
-            Vector<T> vo = other.toVec(offset, mask);
+            Vector<T> va = toVec(elementSize() * offset, mask);
+            Vector<T> vo = other.toVec(elementSize() * offset, mask);
 
             va = va.mul(vo);
-            va.intoByteArray(data, offset, BYTE_ORDER, mask);
+            va.intoByteArray(data, elementSize() * offset, BYTE_ORDER, mask);
         }
     }
 
@@ -101,11 +104,123 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
 
         for (int offset = 0; offset < upperBound; offset += species.length()) {
             VectorMask<T> mask = species.indexInRange(offset, upperBound);
-            Vector<T> va = toVec(offset, mask);
-            Vector<T> vo = other.toVec(offset, mask);
+            Vector<T> va = toVec(elementSize() * offset, mask);
+            Vector<T> vo = other.toVec(elementSize() * offset, mask);
 
             va = va.div(vo);
-            va.intoByteArray(data, offset, BYTE_ORDER, mask);
+            va.intoByteArray(data, elementSize() * offset, BYTE_ORDER, mask);
+        }
+    }
+
+    private int[] padMatrix(int[] dimensions, int offset) {
+        int[] paddedMatrix = new int[dimensions.length + offset];
+        Arrays.fill(paddedMatrix, 1);
+        System.arraycopy(dimensions, 0, paddedMatrix, offset, dimensions.length);
+        return paddedMatrix;
+    }
+
+    public Matrix<T> mmul(Matrix<T> other) {
+        if (dimensions().length < 2 || other.dimensions().length < 2) {
+            throw new IllegalArgumentException("Require at least 2D Matrices");
+        }
+
+        // before checking the dimensions: add dimension-padding to the smaller matrix
+        if (dimensions.length > other.dimensions().length) {
+            other.reshape(padMatrix(other.dimensions(), dimensions.length - other.dimensions().length));
+        } else if (dimensions.length < other.dimensions().length) {
+            reshape(padMatrix(dimensions, other.dimensions().length - dimensions.length));
+        } // else equal -> do nothing
+
+        int nDim = dimensions.length;
+        // check if n-dimensions except 2D is compatible
+        int[] resultDimensions = new int[nDim];
+
+        for (int i = 0; i < nDim - 2; i++) {
+            int d1 = dimensions[i];
+            int d2 = other.dimensions()[i];
+            if (d1 != d2 && d1 != 1 && d2 != 1) {
+                throw new IncompatibleDimensionsException("Matrices cannot be multiplied");
+            } else {
+                resultDimensions[i] = Math.max(d1, d2);
+            }
+        }
+
+        // check if 2 - dimension is compatible
+        if (dimensions()[nDim-1] != other.dimensions()[nDim-2]) {
+            throw new IncompatibleDimensionsException("Matrices cannot be multiplied: Invalid rows/cols");
+        }
+
+        resultDimensions[nDim - 2] = dimensions[nDim - 2];
+        resultDimensions[nDim - 1] = other.dimensions()[nDim - 1];
+
+        int[] swap = IntStream.range(0, nDim).toArray();
+        swap[nDim-1] = nDim-2;
+        swap[nDim-2] = nDim-1;
+
+        Matrix<T> result = createEmptyMatrix(resultDimensions);
+        mmul(other.transpose(swap), result, nDim-1, 0, 0, 0);
+        return result;
+    }
+
+    /**
+     * multiplies two matrices with the same length
+     * @param other other matrix
+     * @param result resulting matrix
+     * @param level current matrix dimension (level + == current dimension. f.e.: level=1 => 2D Matrix)
+     * @param tS start index of this
+     * @param oS start index of other
+     * @param offset offset for destination index
+     * */
+    private void mmul(Matrix<T> other, Matrix<T> result, int level, int tS, int oS, int offset) {
+        if (level == 1) {
+            int m = dimensions()[dimensions.length - 2];
+            int p = other.dimensions()[other.dimensions().length-2];
+            int n = dimensions()[dimensions.length - 1];
+            int[] d = new int[] {m, p};
+
+            for (int i = 0; i < m; i++) {
+                for (int j = 0; j < p; j++) {
+                    T sum = getDefaultValue();
+                    for (int k = 0; k < n; k+= species.length()) {
+                        VectorMask<T> mask = species.indexInRange(k, n);
+                        Vector<T> va = toVec(elementSize() * (n * i +  k + tS) , mask);
+                        Vector<T> vb = other.toVec(elementSize() * (n * j + k + oS), mask);
+
+                        va = va.mul(vb);
+                        sum = add(sum,reduceLanes(va, VectorOperators.ADD));
+                    }
+
+                    int baseAddress = addressToIndex(new int[]{i, j}, d, 0);
+                    int[] toIDx = indexToAddress(result.dimensions(),baseAddress + offset);
+                    result.set(sum, toIDx);
+                }
+            }
+
+
+        } else {
+            int nDim = dimensions.length;
+            int d1 = dimensions[nDim-1 - level];
+            int d2 = other.dimensions()[nDim-1 - level];
+
+            int destNrElements = nrElements(Arrays.copyOfRange(result.dimensions(), nDim - level, nDim));
+
+            if (d1 == 1) {
+                for (int i = 0; i < d2; i++) {
+                    int e2 = nrElements(Arrays.copyOfRange(other.dimensions(), 0, nDim - level));
+                    mmul(other, result, level-1, tS, oS + i * other.size()/e2, offset + i * destNrElements);
+                }
+            } else if (d2 == 1) {
+                int e1 = nrElements(Arrays.copyOfRange(dimensions, 0, nDim - level));
+                for (int i = 0; i < d1; i++) {
+                    mmul(other, result, level-1, tS + i * size()/e1, oS, offset + i * destNrElements);
+                }
+            } else {
+                int e1 = nrElements(Arrays.copyOfRange(dimensions, 0, nDim - level));
+                int e2 = nrElements(Arrays.copyOfRange(other.dimensions(), 0, nDim - level));
+                for (int i = 0; i < d1; i++) {
+                    mmul(other, result, level-1, tS + i * size()/e1, oS + i * other.size()/e2, offset + (i * destNrElements));
+                }
+            }
         }
     }
 
@@ -116,17 +231,33 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
             newDimensions[i] = dimensions()[swap[i]];
         }
 
+        int from = 0;
+        boolean first;
+        byte[] next;
+        byte[] overwritten = new byte[elementSize()];
+
+        HashSet<Integer> visited = new HashSet<>();
         Matrix<T> transposed = createEmptyMatrix(newDimensions);
-        int[] coordCounter = new int[dimensions().length];
 
-        for (int i = 0; i < size(); i++) {
-            int fromBase = computeAddress(coordCounter, dimensions(), 0);
-            int[] coords = swapCoords(coordCounter, swap);
-            int toBase = computeAddress(coords, transposed.dimensions(), 0);
+        for (int i = 0; i <= size(); i++) {
+            first = true;
+            while (!visited.contains(from)) {
+                int[] fromCoords = indexToAddress(dimensions, from);
+                int to = addressToIndex(swapCoords(fromCoords, swap), newDimensions, 0);
+                int destPos = to * elementSize();
+                next = overwritten.clone();
+                System.arraycopy(data, to* elementSize(), overwritten, 0, elementSize());
 
-            System.arraycopy(data, fromBase, transposed.data(), toBase, elementSize());
-
-            incCounter(coordCounter, 0);
+                if (first) {
+                    System.arraycopy(data, from * elementSize(), transposed.data(), destPos, elementSize());
+                } else {
+                    System.arraycopy(next, 0, transposed.data(), destPos, elementSize());
+                }
+                visited.add(from);
+                from = to;
+                first = false;
+            }
+            from = i;
         }
 
         return transposed;
@@ -161,7 +292,21 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
         return result;
     }
 
-    private int computeAddress(int[] coords, int[] dimensions, int start){
+    private int[] indexToAddress(int[] dimensions, int idx) {
+        int[] coords = new int[dimensions.length];
+        int remainder = idx;
+
+        for (int i = 0; i < dimensions.length-1; i++) {
+            int p = Arrays.stream(dimensions).skip(i+1).reduce(1, (a,b) -> a * b);
+            coords[i] = remainder / p;
+            remainder = remainder % p;
+        }
+        coords[coords.length - 1] = remainder;
+
+        return coords;
+    }
+
+    private int addressToIndex(int[] coords, int[] dimensions, int start){
         if (coords.length != dimensions.length) {
             throw new IncompatibleDimensionsException("Coordinates and target matrix dimensions do not match");
         }
@@ -173,21 +318,16 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
             }
             address += a;
         }
-        return address * elementSize();
-    }
-
-    private void incCounter(int[] counters,int d) {
-        int idx = Math.abs(d - counters.length+1);
-        counters[idx] += 1;
-        if (counters[idx] == dimensions()[idx]) {
-            for (int i = idx; i < counters.length; i++) {
-                counters[i] = 0;
-            }
-            incCounter(counters, d+1);
-        }
+        return address;
     }
 
     protected abstract Matrix<T> createEmptyMatrix(int[] dimensions);
+
+    protected abstract T reduceLanes(Vector<T> vector, VectorOperators.Associative op);
+
+    protected abstract T getDefaultValue();
+
+    protected abstract T add(T t1, T t2);
 
     protected abstract void set(T value, int address);
 
@@ -203,9 +343,16 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
         }
 
         for (int i = 0; i < position.length; i+=dimensions.length) {
-            int baseAddress = computeAddress(position, dimensions, i);
+            int baseAddress = addressToIndex(position, dimensions, i);
             set(value, baseAddress);
         }
+    }
+
+    public void reshape(int[] dimensions) {
+        if (nrElements(dimensions) != size()) {
+            throw new IllegalArgumentException("Incompatible dimensions for this matrix data");
+        }
+        this.dimensions = dimensions;
     }
 
     @Override
@@ -261,7 +408,7 @@ abstract class InMemoryMatrix<T extends Number> implements Matrix<T> {
     @Override
     public int hashCode() {
         int result = species != null ? species.hashCode() : 0;
-        result = 31 * result + Arrays.hashCode(dimensions);
+        result = 31 * result;
         return result;
     }
 

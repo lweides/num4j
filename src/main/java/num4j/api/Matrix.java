@@ -29,6 +29,8 @@ public interface Matrix<T extends Number> {
      */
     void mul(Matrix<T> other);
 
+    Matrix<T> mmul(Matrix<T> other);
+
     /**
      * Divides the {@code other} {@link Matrix} to {@code this} elementwise and inplace.
      * @param other to be divided by
@@ -55,6 +57,13 @@ public interface Matrix<T extends Number> {
      * @return the dimensions of the current {@link Matrix}
      */
     int[] dimensions();
+
+    /**
+     * Sets new dimension to the current matrix
+     * @param dimensions new dimensions
+     * @throws IllegalArgumentException if number of matrix elements and new dimensions do not match
+     */
+    void reshape(int[] dimensions);
 
     /**
      * @return the number of elements in the {@link Matrix}
